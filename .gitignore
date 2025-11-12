@@ -16,6 +16,14 @@ __pycache__/
 *.swo
 *~
 
+# AI/Editor directories
+.claude/
+.cursor/
+.specify/
+
+# Internal documentation
+.internal-docs/
+
 # OS files
 .DS_Store
 Thumbs.db
