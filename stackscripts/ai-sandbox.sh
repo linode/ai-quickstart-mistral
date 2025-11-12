@@ -155,6 +155,67 @@ create_directories() {
     chmod 755 "${COMPOSE_DIR}"
 }
 
+# Check and install NVIDIA drivers if needed
+ensure_nvidia_drivers() {
+    log "Checking NVIDIA drivers..."
+
+    # Check if nvidia-smi works (drivers already installed)
+    if nvidia-smi &>/dev/null; then
+        log "✓ NVIDIA drivers already installed"
+        nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | while read -r line; do
+            log "  GPU: ${line}"
+        done
+        return 0
+    fi
+
+    # Check if this is a GPU instance
+    if ! lspci | grep -i nvidia &>/dev/null; then
+        log "⚠️  No NVIDIA GPU detected - this may not be a GPU instance"
+        log "  GPU-accelerated inference will not be available"
+        return 0
+    fi
+
+    log "NVIDIA GPU detected but drivers not installed. Installing..."
+
+    # Set non-interactive mode for apt
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Update package list
+    apt-get update -qq
+
+    # Install Ubuntu's NVIDIA driver packages
+    # This installs the appropriate driver for the detected GPU
+    log "Installing NVIDIA drivers (this may take 2-3 minutes)..."
+    if apt-get install -y -qq nvidia-driver-535 nvidia-utils-535; then
+        log "✓ NVIDIA drivers installed successfully"
+    else
+        log "⚠️  Failed to install NVIDIA drivers via apt, trying alternative method..."
+
+        # Fallback: Install from Ubuntu's hardware drivers
+        ubuntu-drivers autoinstall &>/dev/null || true
+    fi
+
+    # Verify installation
+    if nvidia-smi &>/dev/null; then
+        log "✓ NVIDIA driver installation verified"
+        nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | while read -r line; do
+            log "  GPU: ${line}"
+        done
+
+        # Restart Docker to pick up NVIDIA runtime
+        log "Restarting Docker to enable GPU support..."
+        systemctl restart docker
+        sleep 2
+
+        return 0
+    else
+        log "⚠️  NVIDIA drivers installed but nvidia-smi not working"
+        log "  A reboot may be required for drivers to load"
+        log "  Continuing anyway - services may fail to start"
+        return 1
+    fi
+}
+
 # Generate docker-compose.yml from template
 generate_docker_compose() {
     log "Generating docker-compose.yml..."
@@ -183,16 +244,22 @@ version: '3.8'
 
 services:
   api:
-    image: ghcr.io/vllm-project/vllm-openai:latest
+    image: vllm/vllm-openai:latest
     container_name: ai-sandbox-api
+    command: ["--model", "${MODEL_ID}", "--max-model-len", "16384", "--gpu-memory-utilization", "0.95"]
     ports:
       - "8000:8000"
     volumes:
       - /opt/models:/root/.cache/huggingface
-    environment:
-      - MODEL_ID=${MODEL_ID}
-      # Sequential request processing: vLLM queues concurrent requests and processes them one at a time
-      # This is the default behavior and prevents GPU memory contention
+    # Sequential request processing: vLLM queues concurrent requests and processes them one at a time
+    # This is the default behavior and prevents GPU memory contention
+    # GPU memory tuning: max-model-len reduced to 16384 tokens to fit RTX4000 Ada memory
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8000/v1/models"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 180s
     deploy:
       resources:
         reservations:
@@ -214,7 +281,8 @@ services:
     environment:
       - OPENAI_API_BASE_URL=http://api:8000/v1
     depends_on:
-      - api
+      api:
+        condition: service_started
     restart: unless-stopped
     networks:
       - ai-sandbox-network
@@ -361,24 +429,59 @@ validate_openai_api_compatibility() {
 main() {
     log "Starting AI Sandbox deployment..."
     log "Model ID: ${MODEL_ID}"
-    
+
     # Create directories
     create_directories
-    
+
+    # Check and install NVIDIA drivers if needed
+    ensure_nvidia_drivers
+
     # Generate docker-compose.yml
     generate_docker_compose
-    
-    # Start services
-    log "Starting Docker Compose services..."
-    if docker-compose -f "${COMPOSE_FILE}" up -d; then
-        log "Services started successfully"
+
+    # Start API service first
+    log "Starting API service..."
+    if docker-compose -f "${COMPOSE_FILE}" up -d api; then
+        log "API service started successfully"
     else
-        error_exit "Failed to start Docker Compose services"
+        error_exit "Failed to start API service"
     fi
     
-    # Wait a moment for services to initialize before health checks
-    # This ensures services have started (even if still loading models)
-    log "Waiting for services to initialize..."
+    # Wait for API to be ready (at least listening on port)
+    log "Waiting for API service to be ready..."
+    local max_attempts=60
+    local attempt=0
+    local wait_interval=5
+    
+    while [ ${attempt} -lt ${max_attempts} ]; do
+        # Check if API port is listening (even if model is still loading)
+        if timeout 2 bash -c "echo > /dev/tcp/localhost/8000" 2>/dev/null; then
+            log "✓ API service is listening on port 8000"
+            break
+        fi
+        
+        attempt=$((attempt + 1))
+        if [ ${attempt} -lt ${max_attempts} ]; then
+            log "  Waiting for API to be ready... (attempt ${attempt}/${max_attempts})"
+            sleep ${wait_interval}
+        fi
+    done
+    
+    if [ ${attempt} -ge ${max_attempts} ]; then
+        log "⚠️  Warning: API service may not be fully ready, but starting UI anyway"
+        log "  API will continue loading in the background"
+    fi
+    
+    # Start UI service after API is at least listening
+    log "Starting UI service..."
+    if docker-compose -f "${COMPOSE_FILE}" up -d ui; then
+        log "UI service started successfully"
+    else
+        error_exit "Failed to start UI service"
+    fi
+    
+    # Wait a moment for UI to initialize
+    log "Waiting for UI service to initialize..."
     sleep 10
     
     # Validate chat history persistence (T018)

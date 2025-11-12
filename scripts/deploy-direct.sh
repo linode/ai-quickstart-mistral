@@ -41,6 +41,7 @@ MODEL_ID="${MODEL_ID:-mistralai/Mistral-7B-Instruct-v0.3}"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 if [ -z "${INSTANCE_ID}" ]; then
@@ -76,29 +77,95 @@ echo "StackScript: ${STACKSCRIPT_FILE}"
 echo "Model ID: ${MODEL_ID}"
 echo ""
 
+# Wait for SSH to be available
+wait_for_ssh() {
+    local max_attempts=60
+    local attempt=0
+    local wait_interval=5
+    local last_update_time=$(date +%s)
+    local update_interval=30  # Show update every 30 seconds
+    
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}⏳ Waiting for SSH connection to be available...${NC}"
+    echo -e "${YELLOW}   This can take up to 5 minutes after instance creation${NC}"
+    echo -e "${CYAN}   The instance is booting and configuring network services${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    while [ ${attempt} -lt ${max_attempts} ]; do
+        # Try SSH connection
+        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes root@"${INSTANCE_IP}" "echo 'SSH ready'" 2>/dev/null; then
+            echo ""
+            echo -e "${GREEN}✓ SSH connection established successfully!${NC}"
+            echo ""
+            return 0
+        fi
+        
+        attempt=$((attempt + 1))
+        current_time=$(date +%s)
+        elapsed_time=$((current_time - last_update_time))
+        
+        # Show progress update every 30 seconds
+        if [ ${elapsed_time} -ge ${update_interval} ] || [ ${attempt} -eq 1 ]; then
+            local total_seconds=$((attempt * wait_interval))
+            local minutes=$((total_seconds / 60))
+            local seconds=$((total_seconds % 60))
+            
+            if [ ${minutes} -gt 0 ]; then
+                echo -e "${CYAN}⏳ Still waiting... (${minutes}m ${seconds}s elapsed) - Attempt ${attempt}/${max_attempts}${NC}"
+            else
+                echo -e "${CYAN}⏳ Still waiting... (${seconds}s elapsed) - Attempt ${attempt}/${max_attempts}${NC}"
+            fi
+            echo -e "${CYAN}   Checking if SSH service is ready on ${INSTANCE_IP}...${NC}"
+            echo ""
+            last_update_time=${current_time}
+        fi
+        
+        if [ ${attempt} -lt ${max_attempts} ]; then
+            sleep ${wait_interval}
+        fi
+    done
+    
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}✗ Error: Could not establish SSH connection after ${max_attempts} attempts${NC}"
+    echo -e "${RED}   Total wait time: ~$((max_attempts * wait_interval / 60)) minutes${NC}"
+    echo ""
+    echo -e "${YELLOW}The instance may still be booting. You can:${NC}"
+    echo -e "${YELLOW}  1. Wait a few more minutes and try again:${NC}"
+    echo -e "     ${CYAN}./scripts/deploy-direct.sh ${INSTANCE_ID}${NC}"
+    echo -e "${YELLOW}  2. Check instance status:${NC}"
+    echo -e "     ${CYAN}linode-cli linodes view ${INSTANCE_ID}${NC}"
+    echo -e "${YELLOW}  3. Verify instance is running and has an IP address${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    return 1
+}
+
+# Wait for SSH to be available before proceeding
+if ! wait_for_ssh; then
+    exit 1
+fi
+
 # Copy StackScript and template to instance
 echo "Copying files to instance..."
+
+# Create directory on remote instance
+ssh root@"${INSTANCE_IP}" "mkdir -p /opt/ai-sandbox"
 
 # Create temporary directory for files
 TEMP_DIR=$(mktemp -d)
 cp "${STACKSCRIPT_FILE}" "${TEMP_DIR}/ai-sandbox.sh"
 cp docker/docker-compose.yml.template "${TEMP_DIR}/docker-compose.yml.template" 2>/dev/null || true
 
-# Copy files via SCP (requires SSH key setup)
-if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@"${INSTANCE_IP}" "mkdir -p /opt/ai-sandbox" 2>/dev/null; then
-    scp -o StrictHostKeyChecking=no "${TEMP_DIR}/ai-sandbox.sh" root@"${INSTANCE_IP}":/opt/ai-sandbox/ai-sandbox.sh
-    if [ -f "${TEMP_DIR}/docker-compose.yml.template" ]; then
-        scp -o StrictHostKeyChecking=no "${TEMP_DIR}/docker-compose.yml.template" root@"${INSTANCE_IP}":/opt/ai-sandbox/docker-compose.yml.template
-    fi
-    
-    echo -e "${GREEN}✓ Files copied successfully${NC}"
-else
-    echo -e "${YELLOW}Warning: Could not copy files via SCP (SSH may not be ready yet)${NC}"
-    echo "You may need to wait a bit longer for the instance to fully boot"
-    echo "Or copy files manually and run the StackScript"
-    rm -rf "${TEMP_DIR}"
-    exit 1
+# Copy files via SCP (SSH is now verified to be available)
+scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 "${TEMP_DIR}/ai-sandbox.sh" root@"${INSTANCE_IP}":/opt/ai-sandbox/ai-sandbox.sh
+if [ -f "${TEMP_DIR}/docker-compose.yml.template" ]; then
+    scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 "${TEMP_DIR}/docker-compose.yml.template" root@"${INSTANCE_IP}":/opt/ai-sandbox/docker-compose.yml.template
 fi
+
+echo -e "${GREEN}✓ Files copied successfully${NC}"
 
 # Make StackScript executable
 ssh root@"${INSTANCE_IP}" "chmod +x /opt/ai-sandbox/ai-sandbox.sh"

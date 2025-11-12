@@ -15,6 +15,9 @@
 
 set -euo pipefail
 
+# Non-interactive mode for apt
+export DEBIAN_FRONTEND=noninteractive
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -35,7 +38,7 @@ fi
 # Step 1: Update system
 echo -e "${GREEN}[1/5] Updating system packages...${NC}"
 apt-get update -qq
-apt-get upgrade -y -qq
+apt-get upgrade -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
 # Step 2: Install Docker
 echo -e "${GREEN}[2/5] Installing Docker Engine...${NC}"

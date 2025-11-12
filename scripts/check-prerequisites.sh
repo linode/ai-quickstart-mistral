@@ -30,6 +30,10 @@
 
 set -euo pipefail
 
+# Determine script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -113,7 +117,7 @@ else
 fi
 
 # Check StackScript file
-if [ -f stackscripts/ai-sandbox.sh ]; then
+if [ -f "${PROJECT_ROOT}/stackscripts/ai-sandbox.sh" ]; then
     echo -e "${GREEN}✓ StackScript found: stackscripts/ai-sandbox.sh${NC}"
 else
     echo -e "${RED}✗ StackScript not found: stackscripts/ai-sandbox.sh${NC}"
@@ -121,7 +125,7 @@ else
 fi
 
 # Check Docker Compose template
-if [ -f docker/docker-compose.yml.template ]; then
+if [ -f "${PROJECT_ROOT}/docker/docker-compose.yml.template" ]; then
     echo -e "${GREEN}✓ Docker Compose template found: docker/docker-compose.yml.template${NC}"
 else
     echo -e "${YELLOW}⚠ Docker Compose template not found (will use inline generation)${NC}"

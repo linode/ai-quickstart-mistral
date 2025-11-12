@@ -33,17 +33,23 @@ version: '3.8'
 
 services:
   api:
-    image: ghcr.io/vllm-project/vllm-openai:latest
+    image: vllm/vllm-openai:latest
     container_name: ai-sandbox-api
+    command: ["--model", "MODEL_ID_PLACEHOLDER", "--max-model-len", "16384", "--gpu-memory-utilization", "0.95"]
     ports:
       - "8000:8000"
     volumes:
       - /opt/models:/root/.cache/huggingface
-    environment:
-      - MODEL_ID=MODEL_ID_PLACEHOLDER
-      # Sequential request processing: vLLM queues concurrent requests and processes them one at a time
-      # This is the default behavior and prevents GPU memory contention
-      # No additional configuration needed - handled internally by vLLM
+    # Sequential request processing: vLLM queues concurrent requests and processes them one at a time
+    # This is the default behavior and prevents GPU memory contention
+    # No additional configuration needed - handled internally by vLLM
+    # GPU memory tuning: max-model-len reduced to 16384 tokens to fit RTX4000 Ada memory
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8000/v1/models"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 180s
     deploy:
       resources:
         reservations:
@@ -65,7 +71,8 @@ services:
     environment:
       - OPENAI_API_BASE_URL=http://api:8000/v1
     depends_on:
-      - api
+      api:
+        condition: service_started
     restart: unless-stopped
     networks:
       - ai-sandbox-network

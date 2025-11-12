@@ -117,7 +117,10 @@ prompt_region() {
         fi
     fi
     
-    # Interactive prompt
+    # If no parameter provided and we reach here, it means we're in interactive mode
+    # (non-interactive mode is handled at script level)
+    
+    # Interactive prompt - try to read from /dev/tty if available
     echo "" >&2
     echo -e "${CYAN}Select Region (RTX4000 available regions):${NC}" >&2
     local index=1
@@ -128,14 +131,32 @@ prompt_region() {
         index=$((index + 1))
     done
     
+    # Use /dev/tty for reading if available, otherwise stdin
+    local tty_input=""
+    if [ -c /dev/tty ] && [ -r /dev/tty ] 2>/dev/null; then
+        tty_input="</dev/tty"
+    fi
+    
     while true; do
         echo -ne "${CYAN}Enter choice [1-${#RTX4000_REGIONS[@]}]: ${NC}" >&2
-        # Read from stdin (works in all contexts)
-        read -r choice 2>/dev/null || true
+        # Try to read from TTY, fallback to stdin
+        if ! eval "read -r choice ${tty_input}" 2>/dev/null; then
+            # If reading fails, use default
+            echo -e "\n${YELLOW}Cannot read input. Using default region.${NC}" >&2
+            local default_entry="${RTX4000_REGIONS[0]}"
+            echo "${default_entry%%:*}"
+            return 0
+        fi
         
         if [[ "${choice}" =~ ^[0-9]+$ ]] && [ "${choice}" -ge 1 ] && [ "${choice}" -le ${#RTX4000_REGIONS[@]} ]; then
             local selected_entry="${RTX4000_REGIONS[$((choice - 1))]}"
             echo "${selected_entry%%:*}"
+            return 0
+        elif [ -z "${choice}" ]; then
+            # Empty input - use default
+            echo -e "${YELLOW}No input provided. Using default region.${NC}" >&2
+            local default_entry="${RTX4000_REGIONS[0]}"
+            echo "${default_entry%%:*}"
             return 0
         else
             echo -e "${RED}Invalid choice. Please enter a number between 1 and ${#RTX4000_REGIONS[@]}.${NC}" >&2
@@ -166,7 +187,10 @@ prompt_instance_size() {
         fi
     fi
     
-    # Interactive prompt
+    # If no parameter provided and we reach here, it means we're in interactive mode
+    # (non-interactive mode is handled at script level)
+    
+    # Interactive prompt - try to read from /dev/tty if available
     echo "" >&2
     echo -e "${CYAN}Select Instance Size (RTX4000):${NC}" >&2
     local index=1
@@ -177,14 +201,32 @@ prompt_instance_size() {
         index=$((index + 1))
     done
     
+    # Use /dev/tty for reading if available, otherwise stdin
+    local tty_input=""
+    if [ -c /dev/tty ] && [ -r /dev/tty ] 2>/dev/null; then
+        tty_input="</dev/tty"
+    fi
+    
     while true; do
         echo -ne "${CYAN}Enter choice [1-${#RTX4000_INSTANCE_TYPES[@]}]: ${NC}" >&2
-        # Read from stdin (works in all contexts)
-        read -r choice 2>/dev/null || true
+        # Try to read from TTY, fallback to stdin
+        if ! eval "read -r choice ${tty_input}" 2>/dev/null; then
+            # If reading fails, use default
+            echo -e "\n${YELLOW}Cannot read input. Using default instance type.${NC}" >&2
+            local default_entry="${RTX4000_INSTANCE_TYPES[0]}"
+            echo "${default_entry%%:*}"
+            return 0
+        fi
         
         if [[ "${choice}" =~ ^[0-9]+$ ]] && [ "${choice}" -ge 1 ] && [ "${choice}" -le ${#RTX4000_INSTANCE_TYPES[@]} ]; then
             local selected_entry="${RTX4000_INSTANCE_TYPES[$((choice - 1))]}"
             echo "${selected_entry%%:*}"
+            return 0
+        elif [ -z "${choice}" ]; then
+            # Empty input - use default
+            echo -e "${YELLOW}No input provided. Using default instance type.${NC}" >&2
+            local default_entry="${RTX4000_INSTANCE_TYPES[0]}"
+            echo "${default_entry%%:*}"
             return 0
         else
             echo -e "${RED}Invalid choice. Please enter a number between 1 and ${#RTX4000_INSTANCE_TYPES[@]}.${NC}" >&2
@@ -198,16 +240,39 @@ log "Script: ${SCRIPT_DIR}/deploy-full.sh"
 log "Working directory: ${PROJECT_ROOT}"
 
 # Get parameters (if provided) or prompt interactively
-# Note: Prompts must output to stderr to avoid interfering with command substitution
-if [ -z "${1:-}" ]; then
-    echo -e "${CYAN}=== AI Sandbox Deployment Configuration ===${NC}" >&2
-    echo -e "${CYAN}📋 Log file: ${LOG_FILE}${NC}" >&2
-    echo "" >&2
+# Check if running interactively at script level (before command substitution)
+IS_INTERACTIVE=false
+if [ -t 0 ] && [ -t 1 ] && [ -t 2 ]; then
+    IS_INTERACTIVE=true
 fi
 
-# Call prompts - they output to stderr for visibility, stdout for the result
-INSTANCE_TYPE=$(prompt_instance_size "${1:-}")
-REGION=$(prompt_region "${2:-}")
+# Get parameters or use defaults
+if [ -n "${1:-}" ]; then
+    # Parameter provided - validate and use it
+    INSTANCE_TYPE=$(prompt_instance_size "${1:-}")
+elif [ "${IS_INTERACTIVE}" = "true" ]; then
+    # Interactive mode - prompt user
+    echo -e "${CYAN}=== AI Sandbox Deployment Configuration ===${NC}"
+    echo -e "${CYAN}📋 Log file: ${LOG_FILE}${NC}"
+    echo ""
+    INSTANCE_TYPE=$(prompt_instance_size "")
+else
+    # Non-interactive mode - use default
+    echo -e "${YELLOW}Non-interactive mode: Using defaults${NC}"
+    INSTANCE_TYPE="${RTX4000_INSTANCE_TYPES[0]%%:*}"
+fi
+
+if [ -n "${2:-}" ]; then
+    # Parameter provided - validate and use it
+    REGION=$(prompt_region "${2:-}")
+elif [ "${IS_INTERACTIVE}" = "true" ]; then
+    # Interactive mode - prompt user
+    REGION=$(prompt_region "")
+else
+    # Non-interactive mode - use default
+    REGION="${RTX4000_REGIONS[0]%%:*}"
+fi
+
 MODEL_ID="${3:-mistralai/Mistral-7B-Instruct-v0.3}"
 
 echo ""
@@ -346,11 +411,8 @@ fi
 
 log "Instance IP: ${INSTANCE_IP}"
 
-# Wait a bit more for instance to be fully ready
-echo "Waiting for instance to be ready for deployment..."
-sleep 30
-
 # Step 2: Deploy StackScript
+# Note: deploy-direct.sh will wait for SSH to be available before proceeding
 echo -e "${GREEN}Step 2: Deploying StackScript...${NC}"
 log "Deploying StackScript to instance ${INSTANCE_ID}"
 export MODEL_ID="${MODEL_ID}"
