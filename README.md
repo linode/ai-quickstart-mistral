@@ -291,7 +291,7 @@ This is a Linode Marketplace App. For issues or feature requests, please open an
 
 ## 📄 License
 
-[Add license information here]
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
