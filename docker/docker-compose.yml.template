@@ -1,0 +1,76 @@
+# Purpose:
+#   Docker Compose template for AI Sandbox services (vLLM API and Open WebUI).
+#   This template is used by the StackScript to generate the final docker-compose.yml
+#   with the MODEL_ID placeholder replaced by the actual model identifier.
+#
+#   Why it exists: Enables template-based deployment configuration. Allows
+#   StackScript to customize the model without hardcoding. Supports both
+#   Marketplace and independent deployment workflows.
+#
+# Dependencies:
+#   - Docker Engine: For running containers
+#   - Docker Compose v2: For service orchestration
+#   - NVIDIA Container Toolkit: For GPU passthrough to containers
+#   - GPU instance: Required for AI model inference
+#   - Internet connectivity: For pulling container images (ghcr.io/vllm-project/vllm-openai, ghcr.io/open-webui/open-webui)
+#
+# Troubleshooting:
+#   - "Cannot pull image": Check internet connectivity, verify image names are correct
+#   - "GPU not accessible": Verify NVIDIA Container Toolkit is installed, check GPU instance type
+#   - "Port conflicts": Ensure ports 3000 and 8000 are not in use by other services
+#   - "Volume mount failures": Verify /opt/models and /opt/open-webui directories exist with correct permissions
+#   - "Service startup failures": Check container logs with 'docker-compose logs <service>'
+#   - See stackscripts/ai-sandbox.sh for deployment troubleshooting
+#
+# Specification Links:
+#   - Feature Spec: specs/001-ai-sandbox/spec.md
+#   - StackScript: stackscripts/ai-sandbox.sh (generates final docker-compose.yml from this template)
+#   - Data Model: specs/001-ai-sandbox/data-model.md
+#
+# Note: MODEL_ID_PLACEHOLDER will be replaced by StackScript with actual model ID
+
+version: '3.8'
+
+services:
+  api:
+    image: ghcr.io/vllm-project/vllm-openai:latest
+    container_name: ai-sandbox-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - /opt/models:/root/.cache/huggingface
+    environment:
+      - MODEL_ID=MODEL_ID_PLACEHOLDER
+      # Sequential request processing: vLLM queues concurrent requests and processes them one at a time
+      # This is the default behavior and prevents GPU memory contention
+      # No additional configuration needed - handled internally by vLLM
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - ai-sandbox-network
+
+  ui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ai-sandbox-ui
+    ports:
+      - "3000:8080"
+    volumes:
+      - /opt/open-webui:/app/backend/data
+    environment:
+      - OPENAI_API_BASE_URL=http://api:8000/v1
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - ai-sandbox-network
+
+networks:
+  ai-sandbox-network:
+    driver: bridge
+

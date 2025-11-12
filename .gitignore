@@ -1,0 +1,22 @@
+# Logs directory - contains timestamped deployment logs
+logs/
+
+# Instance info files created during deployment
+.instance-info-*.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
