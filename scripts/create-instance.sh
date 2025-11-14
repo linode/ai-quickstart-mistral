@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Purpose:
-#   Creates a new Linode GPU instance via Linode CLI for AI Quickstart - Minstral LLM deployment.
+#   Creates a new Linode GPU instance via Linode CLI for AI Quickstart - Mistral LLM deployment.
 #   The script creates the instance with cloud-init configuration, waits for it to boot,
 #   and saves instance information for use by other deployment scripts.
 #
@@ -484,7 +484,7 @@ echo ""
 echo "Cloud-init configuration has been applied. The instance will automatically:"
 echo "  - Install Docker and dependencies"
 echo "  - Configure NVIDIA drivers"
-echo "  - Deploy AI Quickstart - Minstral LLM services"
+echo "  - Deploy AI Quickstart - Mistral LLM services"
 echo ""
 echo "Monitor deployment:"
 echo "  ssh root@${INSTANCE_IP} 'tail -f /var/log/cloud-init-output.log'"

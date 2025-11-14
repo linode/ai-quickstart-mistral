@@ -1,4 +1,4 @@
-# AI Quickstart - Minstral LLM
+# AI Quickstart - Mistral LLM
 
 Deploy a complete, pre-configured AI inference stack with both a chat UI and an OpenAI-compatible API endpoint in minutes on Linode GPU instances.
 
@@ -17,7 +17,7 @@ Get started quickly by deploying to a clean Linode GPU instance. See the [Quick 
 
 ## 🏗️ Architecture
 
-AI Quickstart - Minstral LLM consists of two containerized services working together to provide a complete AI inference stack. See the [Architecture Documentation](docs/architecture.md) for detailed information.
+AI Quickstart - Mistral LLM consists of two containerized services working together to provide a complete AI inference stack. See the [Architecture Documentation](docs/architecture.md) for detailed information.
 
 ## 📋 Requirements
 

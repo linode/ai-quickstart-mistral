@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Purpose:
-#   Validates that AI Quickstart - Minstral LLM services (API and UI) are running and accessible
+#   Validates that AI Quickstart - Mistral LLM services (API and UI) are running and accessible
 #   after deployment. Checks SSH connectivity, Docker Compose service status,
 #   port accessibility, and endpoint responses. Provides comprehensive validation
 #   report for deployment verification.
@@ -49,7 +49,7 @@ if [ -z "${INSTANCE_IP}" ]; then
     exit 1
 fi
 
-echo -e "${GREEN}Validating AI Quickstart - Minstral LLM services on ${INSTANCE_IP}...${NC}"
+echo -e "${GREEN}Validating AI Quickstart - Mistral LLM services on ${INSTANCE_IP}...${NC}"
 echo ""
 
 # Check SSH connectivity

@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI Quickstart - Minstral LLM consists of two containerized services that work together to provide a complete AI inference stack:
+AI Quickstart - Mistral LLM consists of two containerized services that work together to provide a complete AI inference stack:
 
 1. **API Service** (`vLLM`): High-performance inference engine
 2. **UI Service** (`Open WebUI`): Feature-rich chat interface

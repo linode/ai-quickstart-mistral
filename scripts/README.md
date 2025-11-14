@@ -1,6 +1,6 @@
-# AI Quickstart - Minstral LLM Deployment Scripts
+# AI Quickstart - Mistral LLM Deployment Scripts
 
-Scripts for independent deployment and testing of AI Quickstart - Minstral LLM on Linode instances.
+Scripts for independent deployment and testing of AI Quickstart - Mistral LLM on Linode instances.
 
 ## Prerequisites
 

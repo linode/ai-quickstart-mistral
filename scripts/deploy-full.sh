@@ -234,7 +234,7 @@ prompt_instance_size() {
 }
 
 # Initialize logging (LOG_DIR and LOG_FILE already set above)
-log "=== AI Quickstart - Minstral LLM Deployment Started ==="
+log "=== AI Quickstart - Mistral LLM Deployment Started ==="
 log "Script: ${SCRIPT_DIR}/deploy-full.sh"
 log "Working directory: ${PROJECT_ROOT}"
 
@@ -251,7 +251,7 @@ if [ -n "${1:-}" ]; then
     INSTANCE_TYPE=$(prompt_instance_size "${1:-}")
 elif [ "${IS_INTERACTIVE}" = "true" ]; then
     # Interactive mode - prompt user
-    echo -e "${CYAN}=== AI Quickstart - Minstral LLM Deployment Configuration ===${NC}"
+    echo -e "${CYAN}=== AI Quickstart - Mistral LLM Deployment Configuration ===${NC}"
     echo -e "${CYAN}📋 Log file: ${LOG_FILE}${NC}"
     echo ""
     INSTANCE_TYPE=$(prompt_instance_size "")
@@ -283,7 +283,7 @@ fi
 
 echo ""
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     AI Quickstart - Minstral LLM - Full Deployment Workflow ║${NC}"
+echo -e "${BLUE}║     AI Quickstart - Mistral LLM - Full Deployment Workflow ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo "Configuration:"

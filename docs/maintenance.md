@@ -1,6 +1,6 @@
 # Maintenance
 
-This guide covers common maintenance tasks for your AI Quickstart - Minstral LLM instance.
+This guide covers common maintenance tasks for your AI Quickstart - Mistral LLM instance.
 
 ## Updating Services
 

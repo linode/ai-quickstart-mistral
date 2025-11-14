@@ -42,7 +42,7 @@ NC='\033[0m'
 
 ERRORS=0
 
-echo "Checking prerequisites for AI Quickstart - Minstral LLM deployment..."
+echo "Checking prerequisites for AI Quickstart - Mistral LLM deployment..."
 echo ""
 
 # Check linode-cli

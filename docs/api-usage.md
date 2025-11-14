@@ -1,6 +1,6 @@
 # API Usage
 
-AI Quickstart - Minstral LLM provides a fully OpenAI-compatible REST API endpoint, making it a drop-in replacement for OpenAI's API. Simply change your `BASE_URL` to point to your instance.
+AI Quickstart - Mistral LLM provides a fully OpenAI-compatible REST API endpoint, making it a drop-in replacement for OpenAI's API. Simply change your `BASE_URL` to point to your instance.
 
 ## Endpoint
 

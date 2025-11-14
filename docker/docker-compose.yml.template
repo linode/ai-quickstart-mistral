@@ -1,5 +1,5 @@
 # Purpose:
-#   Docker Compose template for AI Quickstart - Minstral LLM services (vLLM API and Open WebUI).
+#   Docker Compose template for AI Quickstart - Mistral LLM services (vLLM API and Open WebUI).
 #   This template is used by cloud-init to generate the final docker-compose.yml
 #   with the MODEL_ID placeholder replaced by the actual model identifier.
 #

@@ -1,6 +1,6 @@
 #cloud-config
 # Purpose:
-#   Cloud-init configuration that automatically deploys AI Quickstart - Minstral LLM on first boot.
+#   Cloud-init configuration that automatically deploys AI Quickstart - Mistral LLM on first boot.
 #   Configures and launches both vLLM API server and Open WebUI chat interface
 #   within 5 minutes of instance boot. This enables automated deployment of a
 #   complete AI inference stack without manual configuration.
@@ -67,7 +67,7 @@ write_files:
           log "ERROR: ${error_msg}"
           cat > "${MOTD_FILE}" <<EOF
       ╔════════════════════════════════════════════════════════════════╗
-      ║          AI Quickstart - Minstral LLM Deployment - ERROR         ║
+      ║          AI Quickstart - Mistral LLM Deployment - ERROR         ║
       ╚════════════════════════════════════════════════════════════════╝
       
       ⚠️  DEPLOYMENT FAILED
@@ -93,7 +93,7 @@ write_files:
           
           cat > "${MOTD_FILE}" <<EOF
       ╔════════════════════════════════════════════════════════════════╗
-      ║          AI Quickstart - Minstral LLM - Deployment Complete     ║
+      ║          AI Quickstart - Mistral LLM - Deployment Complete     ║
       ╚════════════════════════════════════════════════════════════════╝
       
       ✅ Services are running and ready!

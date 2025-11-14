@@ -1,10 +1,10 @@
 # Quick Start Guide
 
-Deploy AI Quickstart - Minstral LLM to a clean Linode GPU instance in minutes using automated scripts.
+Deploy AI Quickstart - Mistral LLM to a clean Linode GPU instance in minutes using automated scripts.
 
 ## Overview
 
-This guide walks you through deploying the AI Quickstart - Minstral LLM stack to a fresh Linode GPU instance. The deployment process:
+This guide walks you through deploying the AI Quickstart - Mistral LLM stack to a fresh Linode GPU instance. The deployment process:
 1. Creates a new Linode GPU instance
 2. Installs NVIDIA drivers, Docker, and dependencies
 3. Configures and starts the AI services
@@ -42,7 +42,7 @@ sudo apt-get install jq
 
 ## Deployment
 
-Deploy AI Quickstart - Minstral LLM to a clean Linode GPU instance:
+Deploy AI Quickstart - Mistral LLM to a clean Linode GPU instance:
 
 **Interactive Mode** (recommended for first-time users):
 
