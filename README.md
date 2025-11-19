@@ -12,7 +12,7 @@ Get started quickly by deploying to a clean Linode GPU instance. See the [Quick 
 - **Complete AI Stack**: Includes both a web-based chat interface and an OpenAI-compatible API
 - **Pre-Configured**: NVIDIA drivers, Docker, and all dependencies pre-installed
 - **Fast Time-to-Value**: From instance boot to working AI in under 5 minutes
-- **Model Flexibility**: Choose any7model from Hugging Face at deployment
+- **Pre-Configured Model**: Defaults to Mistral 7B Instruct
 - **OpenAI-Compatible API**: Drop-in replacement for OpenAI endpoints—just change your `BASE_URL`
 
 ## 🏗️ Architecture
@@ -21,14 +21,22 @@ AI Quickstart - Mistral LLM consists of two containerized services working toget
 
 ## 📋 Requirements
 
-- A Linode GPU instance (any supported GPU instance type)
+- A Linode account with GPU access enabled
   - **Note**: GPU instances require GPU access to be enabled on your account. If you don't see GPU instance types available, please contact Linode Support to enable GPU access.
-- Linode CLI configured with API token (for script-based deployment)
+- Local system requirements:
+  - `bash` (version 4.0+)
+  - `curl` (for API calls)
+  - `jq` (for JSON parsing)
+  - `ssh` (for instance access)
+  - `netcat` (nc) (for connectivity checks)
+- Authentication (one of the following):
+  - Linode CLI configured: `pip install linode-cli && linode-cli configure`
+  - OR use OAuth authentication (handled automatically by deployment script)
 
 ## 🎯 Use Cases
 
 ### For AI Explorers
-Try the latest open-source models (like Llama 3) in a chat interface without writing code or paying per-token API fees.
+Try Mistral-7B in a chat interface without writing code or paying per-token API fees.
 
 ### For Backend Engineers
 Get a stable, OpenAI-compatible API endpoint. Point your existing application to your own endpoint by simply changing the `BASE_URL`.
@@ -38,12 +46,36 @@ Use the chat UI to experiment with prompts, then use the same underlying API in 
 
 ## 🚦 Getting Started
 
-See the [Quick Start Guide](docs/quickstart.md) for detailed deployment instructions. The guide covers:
+### Quick Deployment
+
+Deploy everything in one command:
+
+```bash
+./scripts/deploy.sh
+```
+
+The script will guide you through:
+1. API authentication (linode-cli or OAuth)
+2. GPU availability fetching (dynamically fetched from API)
+3. Region selection
+4. GPU instance type selection
+5. Instance labeling
+6. Root password configuration
+7. SSH key configuration
+8. Deployment confirmation
+9. Instance creation
+10. Automated deployment monitoring and health checks
+
+### Detailed Instructions
+
+See the [Quick Start Guide](docs/quickstart.md) for step-by-step instructions. The guide covers:
 
 - Prerequisites and setup
 - Deploying to a clean Linode GPU instance
 - Accessing your services after deployment
 - Troubleshooting common issues
+
+See [Scripts Documentation](scripts/README.md) for detailed script usage and options.
 
 ## 🔒 Security
 
@@ -65,10 +97,12 @@ Common maintenance tasks including updating services, changing models, viewing l
 ## 📚 Documentation
 
 - [Quick Start Guide](docs/quickstart.md) - Get started with deployment
+- [Scripts Documentation](scripts/README.md) - Deployment script usage and options
 - [Architecture](docs/architecture.md) - System architecture and technical details
 - [API Usage](docs/api-usage.md) - API reference and integration examples
 - [Security Guide](docs/security.md) - Security best practices and firewall setup
 - [Maintenance Guide](docs/maintenance.md) - Updating services, changing models, troubleshooting
+- [Non-Interactive Mode](docs/non-interactive-mode.md) - Design for CI/CD automation
 
 ## 🤝 Contributing
 

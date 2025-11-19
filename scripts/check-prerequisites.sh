@@ -136,7 +136,7 @@ if [ ${ERRORS} -eq 0 ]; then
     echo -e "${GREEN}✓ All critical prerequisites met!${NC}"
     echo ""
     echo "You can now run:"
-    echo "  ./scripts/deploy-full.sh"
+    echo "  ./scripts/deploy.sh"
     exit 0
 else
     echo -e "${RED}✗ Some prerequisites are missing${NC}"

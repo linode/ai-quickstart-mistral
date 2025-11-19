@@ -44,33 +44,21 @@ sudo apt-get install jq
 
 Deploy AI Quickstart - Mistral LLM to a clean Linode GPU instance:
 
-**Interactive Mode** (recommended for first-time users):
+**Deploy** (interactive mode):
 
 ```bash
-./scripts/deploy-full.sh
+./scripts/deploy.sh
 ```
 
-The script will prompt you for:
-- Region (RTX4000-available regions):
-  - Chicago, US (us-ord)
-  - Frankfurt 2, DE (de-fra-2)
-  - Osaka, JP (jp-osa)
-  - Paris, FR (fr-par)
-  - Seattle, WA, US (us-sea)
-  - Singapore 2, SG (sg-sin-2)
-- RTX4000 instance size (e.g., Small, Medium, Large)
+The script will guide you through:
+- API authentication (linode-cli or OAuth)
+- Region selection (dynamically fetched from API - shows all available GPU regions)
+- GPU instance type selection (dynamically fetched with current availability and pricing)
+- Instance labeling
+- SSH key configuration
 - Model ID (optional, defaults to `mistralai/Mistral-7B-Instruct-v0.3`)
 
-**Non-Interactive Mode** (for automation):
-
-```bash
-./scripts/deploy-full.sh [instance-type] [region] [model-id]
-```
-
-Example:
-```bash
-./scripts/deploy-full.sh g2-gpu-rtx4000a1-s us-sea mistralai/Mistral-7B-Instruct-v0.3
-```
+**Note**: The script dynamically fetches GPU availability from the Linode API, so you'll see current regions and instance types with real-time availability and pricing.
 
 ### What Happens During Deployment
 
@@ -142,9 +130,13 @@ A security warning is displayed when you SSH into the instance.
 If services aren't ready after deployment:
 
 1. **Wait 3-5 minutes** - Services need time to initialize
-2. **Re-run validation**:
+2. **Check service health**:
    ```bash
-   ./scripts/validate-services.sh YOUR_INSTANCE_IP
+   # Check Open-WebUI
+   curl http://YOUR_INSTANCE_IP:3000/health
+   
+   # Check vLLM API
+   curl http://YOUR_INSTANCE_IP:8000/v1/models
    ```
 3. **Check logs**:
    ```bash
