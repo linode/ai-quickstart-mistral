@@ -1,112 +1,108 @@
 # AI Quickstart - Mistral LLM Deployment Scripts
 
-Scripts for independent deployment and testing of AI Quickstart - Mistral LLM on Linode instances.
+Scripts for automated deployment of AI Quickstart - Mistral LLM on Linode GPU instances.
 
 ## Prerequisites
 
 Before using these scripts, ensure you have:
 
-1. **Linode CLI installed and configured**:
-   ```bash
-   pip install linode-cli
-   linode-cli configure
-   ```
+1. **Linode API Access** (one of the following):
+   - Linode CLI installed and configured: `pip install linode-cli && linode-cli configure`
+   - OR use OAuth authentication (handled automatically by the script)
 
-2. **jq installed** (for JSON parsing):
-   ```bash
-   brew install jq  # macOS
-   apt-get install jq  # Linux
-   ```
+2. **Required Tools**:
+   - `bash` (version 4.0+)
+   - `curl` (for API calls)
+   - `jq` (for JSON parsing)
+   - `ssh` (for instance access)
+   - `netcat` (nc) (for connectivity checks)
 
-3. **SSH key configured** (for accessing instances)
+3. **Optional**:
+   - SSH keys in `~/.ssh/` (or script can auto-generate)
 
-4. **Check prerequisites**:
-   ```bash
-   ./scripts/check-prerequisites.sh
-   ```
+## Quick Start
 
-## Scripts
-
-### Quick Start: Full Deployment
-
-Deploy everything in one command. The script will prompt you interactively for region and instance size if not provided:
-```bash
-./scripts/deploy-full.sh [instance-type] [region] [model-id]
-```
-
-**Interactive Mode** (recommended for first-time users):
-```bash
-./scripts/deploy-full.sh
-```
-You'll be prompted to:
-1. Select a region from RTX4000-available regions
-2. Select an RTX4000 instance size
-3. Model ID (optional, defaults to `mistralai/Mistral-7B-Instruct-v0.3`)
-
-**Non-Interactive Mode** (for automation):
-```bash
-./scripts/deploy-full.sh g2-gpu-rtx4000a1-s us-sea mistralai/Mistral-7B-Instruct-v0.3
-```
-
-**Available Regions** (RTX4000 only):
-- Chicago, US (us-ord)
-- Frankfurt 2, DE (de-fra-2)
-- Osaka, JP (jp-osa)
-- Paris, FR (fr-par)
-- Seattle, WA, US (us-sea)
-- Singapore 2, SG (sg-sin-2)
-
-**Available Instance Sizes** (RTX4000):
-- Small (g2-gpu-rtx4000a1-s) - $350/month
-- Medium (g2-gpu-rtx4000a1-m) - $446/month
-- Large (g2-gpu-rtx4000a1-l) - $638/month
-- X-Large (g2-gpu-rtx4000a1-xl) - $1022/month
-- And more options (x2 and x4 GPU configurations available)
-
-### Individual Scripts
-
-#### `create-instance.sh`
-Create a new Linode GPU instance. Supports interactive prompts for region and instance size.
+Deploy everything in one command:
 
 ```bash
-./scripts/create-instance.sh [instance-type] [region] [root-password] [label]
+./scripts/deploy.sh
 ```
 
-**Interactive Mode**:
-```bash
-./scripts/create-instance.sh
-```
-You'll be prompted to select region and instance size from RTX4000 options.
+The script will guide you through:
+1. API authentication (linode-cli or OAuth)
+2. Region selection (dynamically fetched from API)
+3. GPU instance type selection
+4. Instance labeling
+5. SSH key configuration
+6. Automated deployment and health checks
 
-**Non-Interactive Mode**:
-```bash
-./scripts/create-instance.sh g2-gpu-rtx4000a1-s us-sea "MyPassword123" ai-sandbox-test
-```
+## Main Script: `deploy.sh`
 
-**Note**: Only RTX4000 instances are supported. See available regions and sizes above.
+The main deployment script that handles the complete workflow from instance creation to service validation.
 
-**Output**: Creates instance with cloud-init configuration and saves info to `.instance-info-<ID>.json`
-
-#### `validate-services.sh`
-Validate that services are running and accessible.
+### Usage
 
 ```bash
-./scripts/validate-services.sh <instance-ip>
+./scripts/deploy.sh
 ```
 
-**Example**:
+### Features
+
+- **Dynamic GPU Availability**: Automatically fetches current GPU availability and pricing from Linode API
+- **Multiple Authentication Methods**: Supports linode-cli tokens, OAuth, or environment variables
+- **Real-Time Progress Monitoring**: Uses ntfy.sh for live cloud-init progress updates
+- **Comprehensive Health Checks**: Verifies containers, Open-WebUI, and vLLM model loading
+- **Automatic Cleanup**: Offers to delete failed instances on errors
+- **Comprehensive Logging**: All operations logged to timestamped files
+
+### Model Configuration
+
+Default model: `mistralai/Mistral-7B-Instruct-v0.3`
+
+Override with environment variable:
 ```bash
-./scripts/validate-services.sh 192.168.1.100
+export MODEL_ID="meta-llama/Llama-3-8B-Instruct"
+./scripts/deploy.sh
 ```
 
-**Checks**:
-- SSH connectivity
-- Docker Compose services status
-- Port accessibility (3000, 8000)
-- API/UI endpoint responses
-- Deployment status from /etc/motd
+### Output
 
-#### `cleanup-instance.sh`
+After successful deployment, the script displays:
+- Instance details (ID, IP, region, type)
+- Access credentials (SSH, password)
+- Service URLs (Open-WebUI, API)
+- Log file location
+
+Instance data is saved to: `<instance-label>.json`
+
+## Helper Scripts
+
+Located in `scripts/helpers/`:
+
+### `check_linodecli_token.sh`
+Extracts API token from linode-cli configuration.
+
+```bash
+./scripts/helpers/check_linodecli_token.sh [--silent]
+```
+
+### `linode_oauth.sh`
+OAuth flow for token generation (2-hour temporary tokens).
+
+```bash
+./scripts/helpers/linode_oauth.sh [--silent]
+```
+
+### `get-gpu-availability.sh`
+Fetches current GPU availability and pricing from Linode API.
+
+```bash
+./scripts/helpers/get-gpu-availability.sh [--silent]
+```
+
+## Utility Scripts
+
+### `cleanup-instance.sh`
 Delete a test instance.
 
 ```bash
@@ -118,118 +114,158 @@ Delete a test instance.
 ./scripts/cleanup-instance.sh 12345678
 ```
 
-## Workflow Examples
-
-### Development Workflow
-
-1. **Check prerequisites**:
-   ```bash
-   ./scripts/check-prerequisites.sh
-   ```
-
-2. **Deploy full stack**:
-   ```bash
-   ./scripts/deploy-full.sh
-   ```
-
-3. **Validate deployment**:
-   ```bash
-   # Get IP from .instance-info-*.json or linode-cli
-   ./scripts/validate-services.sh <instance-ip>
-   ```
-
-4. **Test and iterate**:
-   - Make changes to cloud-init configuration
-   - Create a new instance to test changes
-   - Validate again
-
-5. **Cleanup when done**:
-   ```bash
-   ./scripts/cleanup-instance.sh <instance-id>
-   ```
-
-### Testing on Existing Instance
-
-If you already have a Linode instance, you can manually deploy by copying the cloud-init configuration:
-
-```bash
-# Copy cloud-init file to instance
-scp cloud-init/ai-sandbox.yaml root@<instance-ip>:/tmp/
-
-# Run cloud-init manually (if needed)
-# Note: Cloud-init typically runs automatically on first boot
-```
-
-## Environment Variables
-
-- `MODEL_ID`: Override default model (default: `mistralai/Mistral-7B-Instruct-v0.3`)
-
-Example:
-```bash
-export MODEL_ID="meta-llama/Llama-3-8B-Instruct"
-./scripts/deploy-full.sh
-```
-
 ## Logging
 
-All deployment scripts log to timestamped files in the `logs/` directory:
+All deployment operations are logged to timestamped files in the `logs/` directory:
 - Format: `logs/deploy-YYYYMMDD-HHMMSS.log`
-- Each deployment creates a new log file with a timestamp
+- Each deployment creates a new log file
 - Logs are not committed to git (excluded in `.gitignore`)
+
+### Log Contents
 
 The log file contains:
 - Timestamped entries for each deployment step
-- Error messages with details
-- Command outputs for debugging
-- Instance creation and deployment status
+- API calls and responses
+- Instance creation details
+- Health check results
+- Error messages with full context
+- User selections and confirmations
 
-View the latest log:
+### Viewing Logs
+
 ```bash
 # View most recent log
 ls -t logs/*.log | head -1 | xargs tail -f
 
-# Or view all logs
+# View all logs
 ls -lh logs/
+
+# View specific log
+tail -f logs/deploy-20240101-120000.log
 ```
 
-The log file location is displayed at the start of each deployment.
+The log file location is displayed:
+- At the start of deployment
+- In error messages
+- In the final summary
+
+## Environment Variables
+
+- `MODEL_ID`: Override default model (default: `mistralai/Mistral-7B-Instruct-v0.3`)
+- `LINODE_TOKEN`: API token (if not using linode-cli or OAuth)
+
+**Example**:
+```bash
+export MODEL_ID="meta-llama/Llama-3-8B-Instruct"
+export LINODE_TOKEN="your-token-here"
+./scripts/deploy.sh
+```
 
 ## Troubleshooting
 
-### Script Terminates Without Error Message
-- **Check the log file**: The log file location is shown at the start of deployment
-- View latest log: `ls -t logs/*.log | head -1 | xargs tail -20`
-- The log file contains detailed error information even if the script exits silently
-- Common causes:
-  - Linode API errors (check API token permissions)
-  - Password validation failures
-  - Network connectivity issues
-  - Missing dependencies (jq, linode-cli)
+### Script Fails to Start
+
+- **Check dependencies**: Ensure `curl`, `jq`, `ssh`, and `nc` are installed
+- **Check log file**: The log file location is shown at the start
+- **View latest log**: `ls -t logs/*.log | head -1 | xargs tail -20`
+
+### Authentication Fails
+
+- **Linode CLI**: Run `linode-cli configure` to set up API token
+- **OAuth**: Ensure browser can open (script will guide you)
+- **Environment variable**: Set `LINODE_TOKEN` if using direct API access
+- **Check log file**: Authentication errors are logged with details
 
 ### Instance Creation Fails
-- Check Linode CLI is configured: `linode-cli profile view`
-- Verify you have GPU instance access
-- Check available regions: `linode-cli regions list`
-- **Check log file**: `ls -t logs/*.log | head -1 | xargs tail` for detailed error messages
-- Verify password meets requirements (11-128 chars, mixed case, numbers, special chars)
+
+- **Check API token permissions**: Token must have Linode instance creation permissions
+- **Verify GPU access**: Ensure your account has GPU instance access enabled
+- **Check available regions**: Script dynamically fetches available regions
+- **Check log file**: Full API error responses are logged
 
 ### Deployment Fails
-- Wait longer for instance to boot (may take 2-3 minutes)
-- Check SSH connectivity: `ssh root@<instance-ip>`
-- Verify cloud-init file exists: `ls -la cloud-init/ai-sandbox.yaml`
-- **Check log file**: `tail ~/.ai-sandbox-deploy.log` for deployment errors
+
+- **Wait longer**: Cloud-init may take 3-5 minutes to complete
+- **Check SSH connectivity**: `ssh root@<instance-ip>`
+- **Check cloud-init logs**: `ssh root@<instance-ip> 'tail -f /var/log/cloud-init-output.log'`
+- **Check log file**: Deployment errors include full context
 
 ### Services Not Accessible
-- Wait 3-5 minutes for services to start
-- Check deployment logs: `ssh root@<instance-ip> 'tail -f /var/log/ai-sandbox/deployment.log'`
-- Check service status: `ssh root@<instance-ip> 'docker-compose -f /opt/ai-sandbox/docker-compose.yml ps'`
-- **Check local log file**: `tail ~/.ai-sandbox-deploy.log` for validation errors
+
+- **Wait for model loading**: Model download can take 5-10 minutes
+- **Check container status**: `ssh root@<instance-ip> 'docker ps'`
+- **Check service logs**: `ssh root@<instance-ip> 'cd /opt/ai-llm-basic && docker compose logs'`
+- **Check health endpoints**: 
+  - Open-WebUI: `curl http://<instance-ip>:3000/health`
+  - vLLM: `curl http://<instance-ip>:8000/v1/models`
+- **Check log file**: Health check results are logged
+
+### Model Not Loading
+
+- **Check vLLM logs**: `ssh root@<instance-ip> 'docker logs vllm'`
+- **Check GPU availability**: `ssh root@<instance-ip> 'nvidia-smi'`
+- **Verify model ID**: Check that the model ID is correct and accessible
+- **Check log file**: Model loading progress is logged
+
+## Workflow Examples
+
+### Standard Deployment
+
+1. **Run deployment script**:
+   ```bash
+   ./scripts/deploy.sh
+   ```
+
+2. **Follow interactive prompts**:
+   - Select region
+   - Select instance type
+   - Provide instance label
+   - Configure SSH key
+   - Confirm deployment
+
+3. **Wait for deployment** (10-15 minutes):
+   - Instance creation
+   - Cloud-init installation
+   - Container startup
+   - Model loading
+
+4. **Access services**:
+   - Open-WebUI: `http://<instance-ip>:3000`
+   - API: `http://<instance-ip>:8000/v1`
+
+### Custom Model Deployment
+
+```bash
+export MODEL_ID="meta-llama/Llama-3-8B-Instruct"
+./scripts/deploy.sh
+```
+
+### Cleanup After Testing
+
+```bash
+# Get instance ID from deployment output or .json file
+./scripts/cleanup-instance.sh <instance-id>
+```
 
 ## Next Steps
 
 After successful deployment:
-1. Test the chat interface: `http://<instance-ip>:3000`
-2. Test the API: `http://<instance-ip>:8000/v1`
-3. Configure firewall rules to protect your services
-4. Review the [Security Guide](../docs/security.md) for best practices
 
+1. **Access Open-WebUI**: `http://<instance-ip>:3000`
+   - Create admin user on first login
+   - Start chatting with the model
+
+2. **Test API**: `http://<instance-ip>:8000/v1`
+   - OpenAI-compatible endpoints
+   - See [API Usage Guide](../docs/api-usage.md)
+
+3. **Configure Security**:
+   - Set up Linode Cloud Firewall
+   - Restrict access to trusted IPs
+   - See [Security Guide](../docs/security.md)
+
+4. **Review Logs**: Check `logs/deploy-*.log` for deployment details
+
+## Non-Interactive Mode
+
+For CI/CD and automation, see [Non-Interactive Mode Design](../docs/non-interactive-mode.md) for proposed implementation.

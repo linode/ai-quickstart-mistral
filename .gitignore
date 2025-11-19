@@ -3,6 +3,8 @@ logs/
 
 # Instance info files created during deployment
 .instance-info-*.json
+ai-quickstart-*.json
+ai-llm-*.json
 
 # Python cache
 __pycache__/

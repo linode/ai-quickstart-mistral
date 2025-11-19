@@ -1,0 +1,36 @@
+#cloud-config
+
+# Set hostname
+hostname: INSTANCE_LABEL_PLACEHOLDER
+
+# Update system packages
+package_update: true
+package_upgrade: true
+
+# Install base dependencies
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - jq
+  - btop
+  - nvtop
+  - ubuntu-drivers-common
+
+# Files to write
+write_files:
+  - path: /opt/ai-llm-basic/docker-compose.yml
+    permissions: '0644'
+    encoding: base64
+    content: DOCKER_COMPOSE_BASE64_CONTENT_PLACEHOLDER
+
+  - path: /opt/ai-llm-basic/install.sh
+    permissions: '0755'
+    encoding: base64
+    content: INSTALL_SH_BASE64_CONTENT_PLACEHOLDER
+
+# Run install script
+runcmd:
+  - bash /opt/ai-llm-basic/install.sh
+
